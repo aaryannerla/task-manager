@@ -83,7 +83,7 @@ className="border rounded p-3 mb-3 cursor-move bg-white"
 >
 
 <div className="flex items-center gap-3 flex-wrap">
-  
+
 <span
 {...listeners}
 className="cursor-grab text-gray-400"
@@ -503,10 +503,10 @@ className={
 {habits.map((habit)=>(
 <div
 key={habit.id}
-className="grid grid-cols-8 items-center mb-2"
+className="grid grid-cols-8 items-center mb-3 md:mb-2"
 >
 
-<div className="text-sm">
+<div className="text-sm pr-2">
 {habit.name}
 </div>
 
@@ -516,7 +516,7 @@ className="grid grid-cols-8 items-center mb-2"
 key={day}
 onClick={()=>toggleHabit(habit,day)}
 className={
-"w-7 h-7 md:w-6 md:h-6 rounded cursor-pointer mx-auto "+
+"w-9 h-9 md:w-6 md:h-6 rounded cursor-pointer mx-auto "+
 (habit.days?.[day]
 ?"bg-green-500"
 :"bg-gray-300")+
@@ -541,7 +541,7 @@ className={
 
 <button
 onClick={()=>setEditMode(true)}
-className="fixed bottom-6 right-6 md:hidden bg-blue-500 text-white w-14 h-14 rounded-full text-3xl shadow-lg flex items-center justify-center"
+className="fixed bottom-20 right-6 md:hidden bg-blue-500 text-white w-14 h-14 rounded-full text-3xl shadow-lg flex items-center justify-center"
 >
 +
 </button>
