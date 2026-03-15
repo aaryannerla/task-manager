@@ -527,13 +527,13 @@ className="grid grid-cols-[80px_repeat(7,32px)] gap-2 items-center mb-3">
 key={day}
 onClick={()=>toggleHabit(habit,day)}
 className={
-"w-7 h-7 rounded cursor-pointer"+
+"w-7 h-7 rounded cursor-pointer flex items-center justify-center " +
 (habit.days?.[day]
-?"bg-green-500"
-:"bg-gray-300")+
-(day===today
-?" ring-2 ring-blue-400"
-:"")
+? "bg-green-500 "
+: "bg-gray-300 ") +
+(day === today
+? "ring-2 ring-blue-400"
+: "")
 }
 />
 
