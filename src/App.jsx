@@ -1,61 +1,253 @@
 import { useState, useEffect } from "react";
 import { PieChart, Pie, Cell } from "recharts";
 
+import { db } from "./firebase";
+
+import {
+collection,
+addDoc,
+deleteDoc,
+doc,
+onSnapshot,
+updateDoc
+} from "firebase/firestore";
+
+import {
+DndContext,
+closestCenter
+} from "@dnd-kit/core";
+
+import {
+SortableContext,
+verticalListSortingStrategy,
+useSortable,
+arrayMove
+} from "@dnd-kit/sortable";
+
+import {CSS} from "@dnd-kit/utilities";
 const days = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+
+const getDeadlineStatus = (deadline) => {
+
+if(!deadline) return "later";
+
+const now = new Date();
+const due = new Date(deadline);
+
+if(isNaN(due)) return "later";
+
+const diff = due - now;
+const oneDay = 24 * 60 * 60 * 1000;
+
+if(diff <= 0) return "overdue";
+if(diff < oneDay) return "today";
+if(diff < oneDay * 2) return "tomorrow";
+if(diff < oneDay * 7) return "soon";
+
+return "later";
+
+};
+
+function SortableItem({task, toggleTask, deleteTask, editMode}) {
+
+const {
+attributes,
+listeners,
+setNodeRef,
+transform,
+transition
+} = useSortable({id: task.id});
+
+const style = {
+transform: CSS.Transform.toString(transform),
+transition
+};
+
+const status = getDeadlineStatus(task.deadline);
+
+const statusColor = {
+overdue: "text-red-600",
+today: "text-red-500",
+tomorrow: "text-orange-500",
+soon: "text-yellow-500",
+later: "text-green-500"
+};
+
+return(
+
+<div
+ref={setNodeRef}
+style={style}
+{...attributes}
+className="border rounded p-3 mb-3 cursor-move bg-white"
+>
+
+<div className="flex items-center gap-2">
+
+<span
+{...listeners}
+className="cursor-grab text-gray-400"
+>
+⋮⋮
+</span>
+
+<input
+type="checkbox"
+checked={task.completed}
+onChange={()=>toggleTask(task)}
+/>
+
+<span className={
+task.completed
+?"line-through text-gray-400"
+:""
+}>
+{task.title}
+</span>
+
+{editMode &&(
+
+<button
+onClick={()=>deleteTask(task)}
+className="text-red-500 text-xs ml-2"
+>
+Delete
+</button>
+
+)}
+
+</div>
+
+<div className="text-xs text-gray-500 mt-2">
+<span className={statusColor[status]}>
+Deadline: {task.deadline ? new Date(task.deadline).toLocaleString() : "No deadline"}
+</span>
+</div>
+<div className={`text-xs ${statusColor[status]}`}>
+
+{status === "overdue" && "⚠ Overdue"}
+{status === "today" && "🔴 Due Today"}
+{status === "tomorrow" && "🟠 Due Tomorrow"}
+{status === "soon" && "🟡 Due Soon"}
+{status === "later" && "🟢 Later"}
+
+</div>
+</div>
+
+);
+
+}
 
 function App(){
 
 const [editMode,setEditMode] = useState(false);
 const [progressMode,setProgressMode] = useState("weekly");
+const [tasks,setTasks] = useState([]);
+const [habits,setHabits] = useState([]);
+const [taskTitle,setTaskTitle] = useState("");
+const [deadline,setDeadline] = useState("");
 
-const [tasks,setTasks] = useState(()=>{
+/* LOAD TASKS FROM FIREBASE */
 
-const saved = localStorage.getItem("tasks");
+useEffect(()=>{
 
-return saved ? JSON.parse(saved) : [];
+const unsubscribe = onSnapshot(
+collection(db,"tasks"),
+(snapshot)=>{
+
+const data = snapshot.docs.map(doc=>({
+id:doc.id,
+...doc.data()
+}));
+
+setTasks(data);
 
 });
 
-const [habits,setHabits] = useState(()=>{
+return ()=>unsubscribe();
 
-const saved = localStorage.getItem("habits");
+},[]);
 
-return saved ? JSON.parse(saved) : [
+/* LOAD HABITS FROM FIREBASE */
 
-{name:"Workout",days:{Mon:false,Tue:false,Wed:false,Thu:false,Fri:false,Sat:false,Sun:false}},
-{name:"Study",days:{Mon:false,Tue:false,Wed:false,Thu:false,Fri:false,Sat:false,Sun:false}},
-{name:"Reading",days:{Mon:false,Tue:false,Wed:false,Thu:false,Fri:false,Sat:false,Sun:false}},
-{name:"Japanese",days:{Mon:false,Tue:false,Wed:false,Thu:false,Fri:false,Sat:false,Sun:false}},
-{name:"Meditation",days:{Mon:false,Tue:false,Wed:false,Thu:false,Fri:false,Sat:false,Sun:false}}
+useEffect(()=>{
 
-];
+const unsubscribe = onSnapshot(
+collection(db,"habits"),
+(snapshot)=>{
+
+const data = snapshot.docs.map(doc=>({
+id:doc.id,
+...doc.data()
+}));
+
+setHabits(data);
 
 });
 
-useEffect(()=>{
-localStorage.setItem("tasks",JSON.stringify(tasks));
-},[tasks]);
+return ()=>unsubscribe();
 
-useEffect(()=>{
-localStorage.setItem("habits",JSON.stringify(habits));
-},[habits]);
+},[]);
 
-const toggleTask = (id)=>{
-setTasks(tasks.map(t =>
-t.id===id ? {...t,completed:!t.completed} : t
-));
+/* ADD TASK */
+
+const addTask = async(title)=>{
+
+const newTask={
+title,
+deadline: deadline || new Date().toISOString(),
+completed:false,
+order: Date.now()
 };
 
-const toggleHabit = (habitIndex,day)=>{
-
-const updated=[...habits];
-updated[habitIndex].days[day]=!updated[habitIndex].days[day];
-setHabits(updated);
+await addDoc(collection(db,"tasks"),newTask);
 
 };
+/* TOGGLE TASK */
+
+const toggleTask = async(task)=>{
+
+await updateDoc(
+doc(db,"tasks",task.id),
+{
+completed: !task.completed
+}
+);
+
+};
+
+/* DELETE TASK */
+
+const deleteTask = async(task)=>{
+
+await deleteDoc(doc(db,"tasks",task.id));
+
+};
+
+/* TOGGLE HABIT */
+
+const toggleHabit = async(habit,day)=>{
+
+const updatedDays = {
+...habit.days,
+[day]: !habit.days[day]
+};
+
+await updateDoc(
+doc(db,"habits",habit.id),
+{
+days: updatedDays
+}
+);
+
+};
+
+/* TODAY */
 
 const todayIndex=(new Date().getDay()+6)%7;
 const today=days[todayIndex];
+
+/* PROGRESS CALCULATION */
 
 const totalAdditional=tasks.length;
 const completedAdditional=tasks.filter(t=>t.completed).length;
@@ -83,77 +275,69 @@ habits.forEach(h=>{
 if(h.days[today]) todayHabitCompleted++;
 });
 
-const todayAdditionalCompleted=tasks.filter(t=>t.completed).length;
+const todayAdditionalCompleted=
+tasks.filter(t=>t.completed).length;
 
-const dailyCompleted=todayAdditionalCompleted+todayHabitCompleted;
-const dailyTotal=tasks.length+habits.length;
+const dailyCompleted=
+todayAdditionalCompleted+todayHabitCompleted;
+
+const dailyTotal=
+tasks.length+habits.length;
 
 const dailyData=[
 {name:"Done",value:dailyCompleted},
 {name:"Remaining",value:dailyTotal-dailyCompleted}
 ];
 
-const chartData = progressMode==="weekly" ? weeklyData : dailyData;
+const chartData =
+progressMode==="weekly"
+? weeklyData
+: dailyData;
+
+const sortedTasks = [...tasks].sort(
+(a,b)=>a.order-b.order
+);
 
 const COLORS=["#22c55e","#e5e7eb"];
 
-const getTimeLeft=(deadline)=>{
+const handleDragEnd = async(event)=>{
 
-const now=new Date();
-const end=new Date(deadline);
-const diff=end-now;
+const {active,over} = event;
 
-if(diff<=0) return "Expired";
+if(!over || active.id===over.id) return;
 
-const hours=Math.floor(diff/(1000*60*60));
-const minutes=Math.floor((diff%(1000*60*60))/(1000*60));
+const oldIndex = sortedTasks.findIndex(t=>t.id===active.id);
+const newIndex = sortedTasks.findIndex(t=>t.id===over.id);
 
-if(hours>=24){
+const newOrder = arrayMove(sortedTasks,oldIndex,newIndex);
 
-const days=Math.floor(hours/24);
-return days+" day(s) left";
+for(let i=0;i<newOrder.length;i++){
+
+await updateDoc(
+doc(db,"tasks",newOrder[i].id),
+{order:i}
+);
 
 }
 
-return hours+"h "+minutes+"m left";
-
 };
 
-const upcomingTasks = tasks.filter(task=>{
 
-const now=new Date();
-const deadline=new Date(task.deadline);
-const diff=deadline-now;
-
-return diff>0 && diff<=24*60*60*1000 && !task.completed;
-
-});
-
-return (
+return(
 
 <div className="min-h-screen bg-gray-100 p-3 md:p-6">
 
-{upcomingTasks.length>0 &&(
+<div className="grid grid-cols-1 md:grid-cols-2 gap-6 h-[85vh]">
 
-<div className="bg-yellow-200 border border-yellow-400 text-yellow-800 p-3 mb-4 rounded">
+{/* ADDITIONAL TASKS */}
 
-⚠ Task due within 24 hours:
-
-{upcomingTasks.map(task=>(
-<div key={task.id}>{task.title}</div>
-))}
-
-</div>
-
-)}
-
-<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-<div className="bg-white rounded-xl shadow p-4 overflow-auto">
-
+<div className="bg-white rounded-xl shadow p-4 overflow-y-auto h-full">
+  
 <div className="flex justify-between mb-4">
 
-<h2 className="text-lg font-semibold">Additional Tasks</h2>
+<h2 className="text-lg font-semibold">
+Additional Tasks
+</h2>
 
 <button
 onClick={()=>setEditMode(!editMode)}
@@ -166,80 +350,80 @@ className="text-sm bg-gray-200 px-3 py-1 rounded"
 
 {editMode &&(
 
+<div className="flex flex-col gap-2 mb-3">
+
 <input
 type="text"
-placeholder="New task..."
-className="border p-2 w-full mb-3 rounded"
-onKeyDown={(e)=>{
-
-if(e.key==="Enter"){
-
-const newTask={
-id:Date.now(),
-title:e.target.value,
-deadline:new Date().toISOString(),
-priority:"Medium",
-completed:false
-};
-
-setTasks([...tasks,newTask]);
-e.target.value="";
-
-}
-
-}}
+placeholder="Task title..."
+className="border p-2 rounded"
+value={taskTitle}
+onChange={(e)=>setTaskTitle(e.target.value)}
 />
-
-)}
-
-{tasks.map(task=>(
-
-<div key={task.id} className="border rounded p-3 mb-3">
-
-<div className="flex items-center gap-2">
 
 <input
-type="checkbox"
-checked={task.completed}
-onChange={()=>toggleTask(task.id)}
+type="datetime-local"
+className="border p-2 rounded"
+value={deadline}
+onChange={(e)=>setDeadline(e.target.value)}
 />
 
-<span className={task.completed ? "line-through text-gray-400":""}>
-{task.title}
-</span>
-
-{editMode &&(
-
 <button
-onClick={()=>setTasks(tasks.filter(t=>t.id!==task.id))}
-className="text-red-500 text-xs ml-2"
+onClick={()=>{
+
+if(!taskTitle) return;
+
+addTask(taskTitle);
+
+setTaskTitle("");
+setDeadline("");
+
+}}
+className="bg-blue-500 text-white p-2 rounded"
 >
-Delete
+Add Task
 </button>
+
+</div>
 
 )}
 
-</div>
+<DndContext
+collisionDetection={closestCenter}
+onDragEnd={handleDragEnd}
+>
 
-<div className="text-sm mt-2">
+<SortableContext
+items={sortedTasks.map(t=>t.id)}
+strategy={verticalListSortingStrategy}
+>
 
-<div>Priority: {task.priority}</div>
-<div>Deadline: {new Date(task.deadline).toLocaleString()}</div>
-<div>Time Left: {getTimeLeft(task.deadline)}</div>
+{sortedTasks.map(task => (
 
-</div>
-
-</div>
+<SortableItem
+key={task.id}
+task={task}
+toggleTask={toggleTask}
+deleteTask={deleteTask}
+editMode={editMode}
+/>
 
 ))}
 
-</div>
+</SortableContext>
 
-<div className="grid grid-rows-[auto_auto] gap-6">
+</DndContext></div>
+
+{/* RIGHT SIDE */}
+
+<div className="grid grid-rows-[auto_1fr] gap-6 h-full">
+
+{/* PROGRESS */}
 
 <div className="bg-white rounded-xl shadow p-4 flex flex-col items-center">
 
-<h2 className="font-semibold mb-2">Progress</h2>
+<h2 className="font-semibold mb-2">
+Progress
+</h2>
 
 <div className="flex gap-2 mb-3">
 
@@ -247,7 +431,9 @@ Delete
 onClick={()=>setProgressMode("weekly")}
 className={
 "px-3 py-1 text-xs rounded "+
-(progressMode==="weekly"?"bg-blue-500 text-white":"bg-gray-200")
+(progressMode==="weekly"
+?"bg-blue-500 text-white"
+:"bg-gray-200")
 }
 >
 Weekly
@@ -257,7 +443,9 @@ Weekly
 onClick={()=>setProgressMode("daily")}
 className={
 "px-3 py-1 text-xs rounded "+
-(progressMode==="daily"?"bg-blue-500 text-white":"bg-gray-200")
+(progressMode==="daily"
+?"bg-blue-500 text-white"
+:"bg-gray-200")
 }
 >
 Today
@@ -284,24 +472,17 @@ dataKey="value"
 
 </PieChart>
 
-<div className="mt-2 text-sm">
-
-{progressMode==="weekly"
-?`${completed}/${total} completed`
-:`${dailyCompleted}/${dailyTotal} completed`
-}
-
 </div>
 
-</div>
+{/* HABIT GRID */}
 
-<div className="bg-white rounded-xl shadow p-4">
+<div className="bg-white rounded-xl shadow p-4 overflow-y-auto h-full">
 
-<div className="flex justify-between mb-3">
-<h2 className="font-semibold">Fixed Tasks</h2>
-</div>
+<h2 className="font-semibold mb-3">
+Fixed Tasks
+</h2>
 
-<div className="grid grid-cols-8 text-xs md:text-sm mb-2 overflow-x-auto">
+<div className="grid grid-cols-8 text-xs md:text-sm mb-2">
 
 <div></div>
 
@@ -309,7 +490,7 @@ dataKey="value"
 <div
 key={day}
 className={
-"text-center font-medium "+
+"text-center "+
 (day===today?"text-blue-600":"")
 }
 >
@@ -319,80 +500,52 @@ className={
 
 </div>
 
-{habits.map((habit,i)=>(
+{habits.map((habit)=>(
+<div
+key={habit.id}
+className="grid grid-cols-8 items-center mb-2"
+>
 
-<div key={i} className="grid grid-cols-8 items-center mb-2">
-
-{editMode ? (
-
-<input
-value={habit.name}
-onChange={(e)=>{
-
-const updated=[...habits];
-updated[i].name=e.target.value;
-setHabits(updated);
-
-}}
-className="border rounded p-1 text-sm"
-/>
-
-) : (
-
-<div className="text-sm">{habit.name}</div>
-
-)}
+<div className="text-sm">
+{habit.name}
+</div>
 
 {days.map(day=>(
 
 <div
 key={day}
-onClick={()=>toggleHabit(i,day)}
+onClick={()=>toggleHabit(habit,day)}
 className={
 "w-7 h-7 md:w-6 md:h-6 rounded cursor-pointer mx-auto "+
-(habit.days[day]?"bg-green-500":"bg-gray-300")+
-(day===today?" ring-2 ring-blue-400":"")
+(habit.days?.[day]
+?"bg-green-500"
+:"bg-gray-300")+
+(day===today
+?" ring-2 ring-blue-400"
+:"")
 }
 />
 
 ))}
 
 </div>
-
 ))}
 
-{editMode &&(
+</div>
+
+</div>
+
+</div>
+
+{/* FLOATING MOBILE BUTTON */}
 
 <button
-onClick={()=>{
-
-setHabits([
-...habits,
-{
-name:"New Task",
-days:{Mon:false,Tue:false,Wed:false,Thu:false,Fri:false,Sat:false,Sun:false}
-}
-]);
-
-}}
-className="mt-3 text-sm bg-blue-500 text-white px-3 py-1 rounded"
->
-Add Habit
-</button>
-
-)}
-
-</div>
-
-</div>
-
-</div>
-<button
-onClick={() => setEditMode(true)}
+onClick={()=>setEditMode(true)}
 className="fixed bottom-6 right-6 md:hidden bg-blue-500 text-white w-14 h-14 rounded-full text-3xl shadow-lg flex items-center justify-center"
 >
 +
 </button>
+
 </div>
 
 );
