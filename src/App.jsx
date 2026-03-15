@@ -82,8 +82,8 @@ style={style}
 className="border rounded p-3 mb-3 cursor-move bg-white"
 >
 
-<div className="flex items-center gap-2">
-
+<div className="flex items-center gap-3 flex-wrap">
+  
 <span
 {...listeners}
 className="cursor-grab text-gray-400"
@@ -331,8 +331,8 @@ return(
 
 {/* ADDITIONAL TASKS */}
 
-<div className="bg-white rounded-xl shadow p-4 overflow-y-auto h-full">
-  
+<div className="bg-white rounded-xl shadow p-4 md:overflow-y-auto md:h-full">
+
 <div className="flex justify-between mb-4">
 
 <h2 className="text-lg font-semibold">
