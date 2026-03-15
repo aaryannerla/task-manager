@@ -494,7 +494,7 @@ dataKey="value"
 Fixed Tasks
 </h2>
 
-<div className="grid grid-cols-8 text-xs md:text-sm mb-3">
+<div className="grid grid-cols-[80px_repeat(7,32px)] gap-2 text-xs md:text-sm mb-3 items-center">
 
 <div></div>
 
@@ -515,8 +515,7 @@ className={
 {habits.map((habit)=>(
 <div
 key={habit.id}
-className="grid grid-cols-8 items-center mb-2"
->
+className="grid grid-cols-[80px_repeat(7,32px)] gap-2 items-center mb-3">
 
 <div className="text-sm pr-2 truncate">
 {habit.name}
@@ -528,7 +527,7 @@ className="grid grid-cols-8 items-center mb-2"
 key={day}
 onClick={()=>toggleHabit(habit,day)}
 className={
-"w-7 h-7 md:w-6 md:h-6 rounded cursor-pointer mx-auto flex-shrink-0"+
+"w-7 h-7 rounded cursor-pointer"+
 (habit.days?.[day]
 ?"bg-green-500"
 :"bg-gray-300")+
