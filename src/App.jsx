@@ -494,7 +494,7 @@ dataKey="value"
 Fixed Tasks
 </h2>
 
-<div className="grid grid-cols-8 text-xs md:text-sm mb-2">
+<div className="grid grid-cols-[90px_repeat(7,1fr)] text-xs md:text-sm mb-3">
 
 <div></div>
 
@@ -515,7 +515,7 @@ className={
 {habits.map((habit)=>(
 <div
 key={habit.id}
-className="grid grid-cols-[90px_repeat(7,1fr)] items-center mb-2"
+className="grid grid-cols-[90px_repeat(7,1fr)] items-center mb-3"
 >
 
 <div className="text-sm pr-2">
@@ -528,7 +528,7 @@ className="grid grid-cols-[90px_repeat(7,1fr)] items-center mb-2"
 key={day}
 onClick={()=>toggleHabit(habit,day)}
 className={
-"w-7 h-7 md:w-6 md:h-6 rounded cursor-pointer mx-auto "+
+"w-7 h-7 md:w-6 md:h-6 rounded cursor-pointer mx-auto transition-all"+
 (habit.days?.[day]
 ?"bg-green-500"
 :"bg-gray-300")+
@@ -551,12 +551,7 @@ className={
 
 {/* FLOATING MOBILE BUTTON */}
 
-<button
-onClick={()=>setEditMode(true)}
-className="fixed bottom-24 right-6 md:hidden bg-blue-500 text-white w-14 h-14 rounded-full text-3xl shadow-lg flex items-center justify-center"
->
-+
-</button>
+
 
 </div>
 
