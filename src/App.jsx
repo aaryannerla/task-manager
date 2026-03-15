@@ -494,8 +494,8 @@ dataKey="value"
 Fixed Tasks
 </h2>
 
-<div className="grid grid-cols-[80px_repeat(7,32px)] gap-2 text-xs md:text-sm mb-3 items-center">
-
+<div className="grid grid-cols-8 gap-2 text-xs md:text-sm mb-3 items-center">
+  
 <div></div>
 
 {days.map(day=>(
@@ -515,7 +515,7 @@ className={
 {habits.map((habit)=>(
 <div
 key={habit.id}
-className="grid grid-cols-[80px_repeat(7,32px)] gap-2 items-center mb-3">
+className="grid grid-cols-8 gap-2 items-center mb-3">
 
 <div className="text-sm pr-2 truncate">
 {habit.name}
