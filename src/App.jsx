@@ -517,7 +517,7 @@ className={
 key={habit.id}
 className="grid grid-cols-8 gap-2 items-center mb-3">
 
-<div className="text-sm pr-2 truncate">
+<div className="text-sm pr-3 whitespace-nowrap">
 {habit.name}
 </div>
 
