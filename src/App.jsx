@@ -453,6 +453,8 @@ Today
 
 </div>
 
+<div className="relative">
+
 <PieChart width={200} height={200}>
 
 <Pie
@@ -471,6 +473,16 @@ dataKey="value"
 </Pie>
 
 </PieChart>
+
+<div className="absolute inset-0 flex items-center justify-center text-xl font-semibold">
+
+{total === 0
+? "0%"
+: Math.round((completed / total) * 100) + "%"}
+
+</div>
+
+</div>
 
 </div>
 
@@ -503,7 +515,7 @@ className={
 {habits.map((habit)=>(
 <div
 key={habit.id}
-className="grid grid-cols-8 items-center mb-3 md:mb-2"
+className="grid grid-cols-[90px_repeat(7,1fr)] items-center mb-2"
 >
 
 <div className="text-sm pr-2">
@@ -516,7 +528,7 @@ className="grid grid-cols-8 items-center mb-3 md:mb-2"
 key={day}
 onClick={()=>toggleHabit(habit,day)}
 className={
-"w-9 h-9 md:w-6 md:h-6 rounded cursor-pointer mx-auto "+
+"w-7 h-7 md:w-6 md:h-6 rounded cursor-pointer mx-auto "+
 (habit.days?.[day]
 ?"bg-green-500"
 :"bg-gray-300")+
@@ -541,7 +553,7 @@ className={
 
 <button
 onClick={()=>setEditMode(true)}
-className="fixed bottom-20 right-6 md:hidden bg-blue-500 text-white w-14 h-14 rounded-full text-3xl shadow-lg flex items-center justify-center"
+className="fixed bottom-24 right-6 md:hidden bg-blue-500 text-white w-14 h-14 rounded-full text-3xl shadow-lg flex items-center justify-center"
 >
 +
 </button>
